@@ -1,119 +1,121 @@
-// 1. Importaciones
 const express = require('express');
 const cors = require('cors');
+const mongoose = require('mongoose');
 
-// 2. Inicialización
+// Importar Modelos
+const Producto = require('./models/Producto');
+const Usuario = require('./models/Usuario');
+const Boleta = require('./models/Boleta');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 3. Middlewares
-// express.json() permite al servidor entender peticiones con body en formato JSON
 app.use(express.json());
-// cors() permite que nuestra API reciba peticiones desde otros orígenes (dominios)
 app.use(cors());
 
-// 4. "Base de Datos" en Memoria
-// Para este ejemplo, usaremos un array. En un proyecto real, esto sería una base de datos.
-let productos = [
-  { id: 1, nombre: "Laptop Dell XPS 15", precio: 1899.99 },
-  { id: 2, nombre: "Teclado Mecánico Keychron", precio: 150.00 },
-  { id: 3, nombre: "Mouse Logitech MX Master 3", precio: 99.50 }
-];
+const MONGO_URI = 'mongodb://127.0.0.1:27017/onthegomusic';
+mongoose.connect(MONGO_URI)
+  .then(() => console.log('✅ Conectado a MongoDB'))
+  .catch(err => console.error('❌ Error MongoDB:', err));
 
-// Un contador simple para simular IDs auto-incrementales
-let nextId = 4;
-
-// 5. Definición de Rutas (Endpoints)
-
-// --- Endpoint de Bienvenida (GET /) ---
-app.get('/', (req, res) => {
-  res.send('API de Productos v1.0');
+// --- LOGIN & REGISTER ---
+app.post('/login', async (req, res) => {
+  const { correo, password } = req.body;
+  try {
+    const user = await Usuario.findOne({ correo, password });
+    if (user) {
+      const { password, ...userWithoutPass } = user.toObject();
+      res.json(userWithoutPass);
+    } else {
+      res.status(401).json({ message: 'Credenciales inválidas' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Error servidor' });
+  }
 });
 
-// --- Endpoint para LEER TODOS los productos (READ) ---
-// MÉTODO: GET
-// ENDPOINT: /productos
-app.get('/productos', (req, res) => {
-  // Simplemente devolvemos el array completo de productos
+app.post('/register', async (req, res) => {
+  try {
+    const nuevoUsuario = new Usuario({ ...req.body, rol: 'cliente' });
+    await nuevoUsuario.save();
+    res.status(201).json(nuevoUsuario);
+  } catch (error) {
+    res.status(400).json({ message: 'Error registro', error });
+  }
+});
+
+// --- PRODUCTOS ---
+app.get('/productos', async (req, res) => {
+  const productos = await Producto.find();
   res.json(productos);
 });
 
-// --- Endpoint para LEER UN PRODUCTO por ID (READ) ---
-// MÉTODO: GET
-// ENDPOINT: /productos/:id (ej: /productos/1)
-app.get('/productos/:id', (req, res) => {
-  // Obtenemos el ID de los parámetros de la URL (req.params)
-  const id = parseInt(req.params.id);
-  // Buscamos el producto en el array
-  const producto = productos.find(p => p.id === id);
+app.get('/productos/:id', async (req, res) => {
+  const producto = await Producto.findById(req.params.id);
+  producto ? res.json(producto) : res.status(404).json({ message: 'No encontrado' });
+});
 
-  if (producto) {
+app.post('/productos', async (req, res) => {
+  try {
+    const producto = new Producto(req.body);
+    await producto.save();
+    res.status(201).json(producto);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+app.put('/productos/:id', async (req, res) => {
+  try {
+    const producto = await Producto.findByIdAndUpdate(req.params.id, req.body, { new: true });
     res.json(producto);
-  } else {
-    // Si no se encuentra, devolvemos un código 404 (Not Found)
-    res.status(404).json({ mensaje: 'Producto no encontrado' });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
 });
 
-// --- Endpoint para CREAR un nuevo producto (CREATE) ---
-// MÉTODO: POST
-// ENDPOINT: /productos
-app.post('/productos', (req, res) => {
-  // Los datos del nuevo producto vienen en el "body" de la petición
-  const { nombre, precio } = req.body;
-
-  // Creamos el nuevo objeto producto
-  const nuevoProducto = {
-    id: nextId++,
-    nombre: nombre,
-    precio: parseFloat(precio) // Aseguramos que el precio sea un número
-  };
-
-  // Añadimos el producto a nuestro array
-  productos.push(nuevoProducto);
-  
-  // Devolvemos un código 201 (Created) y el producto recién creado
-  res.status(201).json(nuevoProducto);
+app.delete('/productos/:id', async (req, res) => {
+  await Producto.findByIdAndDelete(req.params.id);
+  res.status(204).send();
 });
 
-// --- Endpoint para ACTUALIZAR un producto (UPDATE) ---
-// MÉTODO: PUT
-// ENDPOINT: /productos/:id
-app.put('/productos/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const { nombre, precio } = req.body;
-  
-  // Buscamos el índice del producto en el array
-  const productoIndex = productos.findIndex(p => p.id === id);
+// --- USUARIOS ---
+app.get('/usuarios', async (req, res) => {
+  const usuarios = await Usuario.find();
+  res.json(usuarios);
+});
 
-  if (productoIndex !== -1) {
-    // Si lo encontramos, actualizamos sus propiedades
-    productos[productoIndex].nombre = nombre;
-    productos[productoIndex].precio = parseFloat(precio);
-    res.json(productos[productoIndex]); // Devolvemos el producto actualizado
-  } else {
-    res.status(404).json({ mensaje: 'Producto no encontrado' });
+app.post('/usuarios', async (req, res) => {
+  try {
+    const usuario = new Usuario(req.body);
+    await usuario.save();
+    res.status(201).json(usuario);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
 });
 
-// --- Endpoint para BORRAR un producto (DELETE) ---
-// MÉTODO: DELETE
-// ENDPOINT: /productos/:id
-app.delete('/productos/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const productoIndex = productos.findIndex(p => p.id === id);
-
-  if (productoIndex !== -1) {
-    // Usamos splice para eliminar el producto del array
-    productos.splice(productoIndex, 1);
-    // Devolvemos un código 204 (No Content) que indica éxito sin devolver datos
-    res.status(204).send();
-  } else {
-    res.status(404).json({ mensaje: 'Producto no encontrado' });
+// --- BOLETAS ---
+app.get('/boletas', async (req, res) => {
+  try {
+    // .populate('usuario') rellena los datos del usuario en lugar de mostrar solo el ID
+    const boletas = await Boleta.find().populate('usuario'); 
+    res.json(boletas);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 });
 
-// 6. Iniciar el servidor
+app.post('/boletas', async (req, res) => {
+  try {
+    const boleta = new Boleta(req.body);
+    await boleta.save();
+    res.status(201).json(boleta);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
 app.listen(PORT, () => {
-  console.log(`Servidor corriendo exitosamente en http://localhost:${PORT}`);
+  console.log(`API corriendo en puerto ${PORT}`);
 });
