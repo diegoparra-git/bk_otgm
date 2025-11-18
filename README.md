@@ -59,5 +59,5 @@ La API estará disponible en el puerto **3000** (por defecto).
 
 ## **📝 Notas de Despliegue**
 
-* La conexión a la base de datos está configurada para **localhost** (127.0.0.1:27017), asumiendo que la API y MongoDB corren en la misma instancia.  
+* La conexión a la base de datos está configurada para **localhost** (0.0.0.0:27017).  
 * Asegúrate de que el **Security Group** de AWS tenga abierto el puerto 3000 (TCP) para permitir el tráfico entrante desde la instancia de Frontend.
