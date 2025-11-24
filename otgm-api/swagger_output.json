@@ -1,8 +1,8 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "My API",
-    "description": "Description of my API",
+    "title": "On The Go Music API",
+    "description": "API REST para gestión de música y ventas",
     "version": "1.0.0"
   },
   "host": "localhost:3000",
@@ -10,5 +10,457 @@
   "schemes": [
     "http"
   ],
-  "paths": {}
+  "paths": {
+    "/login": {
+      "post": {
+        "tags": [
+          "Autenticación"
+        ],
+        "summary": "Iniciar sesión",
+        "description": "Retorna el usuario sin la contraseña.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "description": "Credenciales",
+            "schema": {
+              "$ref": "#/definitions/Login"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/register": {
+      "post": {
+        "tags": [
+          "Autenticación"
+        ],
+        "summary": "Registrar nuevo usuario",
+        "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "description": "Datos del usuario",
+            "schema": {
+              "$ref": "#/definitions/NuevoUsuario"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
+    "/productos": {
+      "get": {
+        "tags": [
+          "Productos"
+        ],
+        "summary": "Listar catálogo",
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Productos"
+        ],
+        "summary": "Crear producto",
+        "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "description": "Información del producto",
+            "schema": {
+              "$ref": "#/definitions/NuevoProducto"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
+    "/productos/{id}": {
+      "get": {
+        "tags": [
+          "Productos"
+        ],
+        "summary": "Obtener detalle de producto",
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "ID del producto"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Productos"
+        ],
+        "summary": "Actualizar producto",
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "ID del producto"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "description": "Información actualizada del producto",
+            "schema": {
+              "$ref": "#/definitions/NuevoProducto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Productos"
+        ],
+        "summary": "Eliminar producto",
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "ID del producto"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/usuarios": {
+      "get": {
+        "tags": [
+          "Usuarios"
+        ],
+        "summary": "Listar usuarios (Admin)",
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Usuarios"
+        ],
+        "summary": "Crear nuevo usuario (Admin)",
+        "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "description": "Datos del nuevo usuario",
+            "schema": {
+              "$ref": "#/definitions/NuevoUsuario"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
+    "/usuarios/{id}": {
+      "put": {
+        "tags": [
+          "Usuarios"
+        ],
+        "summary": "Editar usuario (Admin)",
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "ID del usuario"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "description": "Datos actualizados del usuario",
+            "schema": {
+              "$ref": "#/definitions/NuevoUsuario"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Usuarios"
+        ],
+        "summary": "Eliminar usuario (Admin)",
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "ID del usuario"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/boletas": {
+      "get": {
+        "tags": [
+          "Ventas"
+        ],
+        "summary": "Historial de ventas",
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Ventas"
+        ],
+        "summary": "Generar nueva venta",
+        "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "description": "Detalle de la boleta",
+            "schema": {
+              "$ref": "#/definitions/NuevaBoleta"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Login": {
+      "type": "object",
+      "properties": {
+        "correo": {
+          "type": "string",
+          "example": "cliente@email.com"
+        },
+        "password": {
+          "type": "string",
+          "example": "password123"
+        }
+      }
+    },
+    "NuevoUsuario": {
+      "type": "object",
+      "properties": {
+        "rut": {
+          "type": "string",
+          "example": "12345678-9"
+        },
+        "nombre": {
+          "type": "string",
+          "example": "Juan"
+        },
+        "apellidos": {
+          "type": "string",
+          "example": "Perez"
+        },
+        "correo": {
+          "type": "string",
+          "example": "juan@email.com"
+        },
+        "password": {
+          "type": "string",
+          "example": "password123"
+        },
+        "region": {
+          "type": "string",
+          "example": "Metropolitana"
+        },
+        "comuna": {
+          "type": "string",
+          "example": "Santiago"
+        },
+        "direccion": {
+          "type": "string",
+          "example": "Calle Falsa 123"
+        }
+      }
+    },
+    "NuevoProducto": {
+      "type": "object",
+      "properties": {
+        "codigo": {
+          "type": "string",
+          "example": "PROD-001"
+        },
+        "title": {
+          "type": "string",
+          "example": "Guitarra Eléctrica"
+        },
+        "descripcion": {
+          "type": "string",
+          "example": "Guitarra de 6 cuerdas"
+        },
+        "price": {
+          "type": "number",
+          "example": 250000
+        },
+        "stock": {
+          "type": "number",
+          "example": 10
+        },
+        "categoria": {
+          "type": "string",
+          "example": "Cuerdas"
+        },
+        "image": {
+          "type": "string",
+          "example": "url_imagen"
+        }
+      }
+    },
+    "NuevaBoleta": {
+      "type": "object",
+      "properties": {
+        "usuario": {
+          "type": "string",
+          "example": "ID_DEL_USUARIO"
+        },
+        "total": {
+          "type": "number",
+          "example": 50000
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "productoId": {
+                "type": "string",
+                "example": "ID_PRODUCTO"
+              },
+              "titulo": {
+                "type": "string",
+                "example": "Guitarra"
+              },
+              "precio": {
+                "type": "number",
+                "example": 50000
+              },
+              "cantidad": {
+                "type": "number",
+                "example": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 }
