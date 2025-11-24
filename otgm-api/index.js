@@ -13,12 +13,15 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(cors());
 
+// Conexión a MongoDB (Localhost)
 const MONGO_URI = 'mongodb://127.0.0.1:27017/onthegomusic';
 mongoose.connect(MONGO_URI)
   .then(() => console.log('✅ Conectado a MongoDB'))
   .catch(err => console.error('❌ Error MongoDB:', err));
 
-// --- LOGIN & REGISTER ---
+// ==========================================
+// RUTAS DE AUTENTICACIÓN
+// ==========================================
 app.post('/login', async (req, res) => {
   const { correo, password } = req.body;
   try {
@@ -44,15 +47,21 @@ app.post('/register', async (req, res) => {
   }
 });
 
-// --- PRODUCTOS ---
+// ==========================================
+// RUTAS DE PRODUCTOS
+// ==========================================
 app.get('/productos', async (req, res) => {
   const productos = await Producto.find();
   res.json(productos);
 });
 
 app.get('/productos/:id', async (req, res) => {
-  const producto = await Producto.findById(req.params.id);
-  producto ? res.json(producto) : res.status(404).json({ message: 'No encontrado' });
+  try {
+    const producto = await Producto.findById(req.params.id);
+    producto ? res.json(producto) : res.status(404).json({ message: 'No encontrado' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
 app.post('/productos', async (req, res) => {
@@ -75,14 +84,24 @@ app.put('/productos/:id', async (req, res) => {
 });
 
 app.delete('/productos/:id', async (req, res) => {
-  await Producto.findByIdAndDelete(req.params.id);
-  res.status(204).send();
+  try {
+    await Producto.findByIdAndDelete(req.params.id);
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
-// --- USUARIOS ---
+// ==========================================
+// RUTAS DE USUARIOS (¡AHORA COMPLETAS!)
+// ==========================================
 app.get('/usuarios', async (req, res) => {
-  const usuarios = await Usuario.find();
-  res.json(usuarios);
+  try {
+    const usuarios = await Usuario.find();
+    res.json(usuarios);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
 app.post('/usuarios', async (req, res) => {
@@ -95,10 +114,44 @@ app.post('/usuarios', async (req, res) => {
   }
 });
 
-// --- BOLETAS ---
+// --- ESTAS ERAN LAS QUE FALTABAN ---
+
+// PUT: Editar Usuario
+app.put('/usuarios/:id', async (req, res) => {
+  try {
+    // { new: true } devuelve el usuario ya modificado
+    const usuario = await Usuario.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    
+    if (!usuario) {
+        return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+    
+    res.json(usuario);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// DELETE: Eliminar Usuario
+app.delete('/usuarios/:id', async (req, res) => {
+  try {
+    const usuario = await Usuario.findByIdAndDelete(req.params.id);
+    
+    if (!usuario) {
+        return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+    
+    res.status(204).send(); // 204 No Content (Éxito)
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ==========================================
+// RUTAS DE BOLETAS
+// ==========================================
 app.get('/boletas', async (req, res) => {
   try {
-    // .populate('usuario') rellena los datos del usuario en lugar de mostrar solo el ID
     const boletas = await Boleta.find().populate('usuario'); 
     res.json(boletas);
   } catch (error) {
@@ -117,5 +170,5 @@ app.post('/boletas', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`API corriendo en puerto ${PORT}`);
+  console.log(`🚀 API corriendo en puerto ${PORT}`);
 });
