@@ -245,6 +245,6 @@ app.listen(PORT, () => {
 // TODO: {pipe} Mostrar rutas api en swagger
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+
   console.log(`Swagger UI available at http://localhost:${PORT}/api-docs`);
 });

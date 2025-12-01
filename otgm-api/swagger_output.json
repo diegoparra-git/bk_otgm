@@ -301,7 +301,7 @@
     "/boletas": {
       "get": {
         "tags": [
-          "Ventas"
+          "Boletas"
         ],
         "summary": "Historial de ventas",
         "description": "",
@@ -316,7 +316,7 @@
       },
       "post": {
         "tags": [
-          "Ventas"
+          "Boletas"
         ],
         "summary": "Generar nueva venta",
         "description": "",
