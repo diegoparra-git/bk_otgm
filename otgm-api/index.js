@@ -155,6 +155,22 @@ app.get('/usuarios', async (req, res) => {
   }
 });
 
+app.get('/usuarios/:id', async (req, res) => {
+  // #swagger.tags = ['Usuarios']
+  // #swagger.summary = 'Obtener usuario por ID'
+  // #swagger.parameters['id'] = { description: 'ID del usuario' }
+  try {
+    const usuario = await Usuario.findById(req.params.id);
+    if (!usuario) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+    const { password, ...usuarioSinPass } = usuario.toObject();
+    res.json(usuarioSinPass);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 app.post('/usuarios', async (req, res) => {
   // #swagger.tags = ['Usuarios']
   // #swagger.summary = 'Crear nuevo usuario (Admin)'
@@ -171,8 +187,6 @@ app.post('/usuarios', async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
-
-// --- ESTAS ERAN LAS QUE FALTABAN ---
 
 // PUT: Editar Usuario
 app.put('/usuarios/:id', async (req, res) => {
