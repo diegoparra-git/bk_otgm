@@ -21,6 +21,15 @@ mongoose.connect(MONGO_URI)
   .then(() => console.log('✅ Conectado a MongoDB'))
   .catch(err => console.error('❌ Error MongoDB:', err));
 
+
+app.get('/', (req, res) => {
+  res.send(`
+    <h1>Bienvenido a la API de On The Go Music</h1>
+    <p>El servidor está funcionando correctamente.</p>
+    <p>Visita <a href="/api-docs">/api-docs</a> para ver la documentación.</p>
+  `);
+});
+
 // ==========================================
 // RUTAS DE AUTENTICACIÓN
 // ==========================================
