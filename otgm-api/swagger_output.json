@@ -5,26 +5,50 @@
     "description": "API REST para gestión de música y ventas",
     "version": "1.0.0"
   },
-  "host": "localhost:3000",
+  "host": "34.193.81.109:3000",
   "basePath": "/",
   "schemes": [
     "http"
   ],
+  "securityDefinitions": {
+    "bearerAuth": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "scheme": "bearer",
+      "in": "header",
+      "description": "Ingresa tu token en el formato: Bearer <tu_token_aqui>"
+    }
+  },
   "paths": {
-    "/login": {
+    "/api/v1/login": {
       "post": {
         "tags": [
-          "Autenticación"
+          "Auth"
         ],
         "summary": "Iniciar sesión",
-        "description": "Retorna el usuario sin la contraseña.",
+        "description": "Logea un usuario y devuelve un token JWT.",
         "parameters": [
           {
             "name": "body",
             "in": "body",
-            "description": "Credenciales",
+            "description": "Credenciales del usuario",
+            "required": true,
             "schema": {
-              "$ref": "#/definitions/Login"
+              "type": "object",
+              "properties": {
+                "correo": {
+                  "type": "string",
+                  "example": "admin@duoc.cl"
+                },
+                "password": {
+                  "type": "string",
+                  "example": "123456"
+                }
+              },
+              "required": [
+                "correo",
+                "password"
+              ]
             }
           }
         ],
@@ -41,20 +65,43 @@
         }
       }
     },
-    "/register": {
+    "/api/v1/register": {
       "post": {
         "tags": [
-          "Autenticación"
+          "Auth"
         ],
-        "summary": "Registrar nuevo usuario",
+        "summary": "Registrar nuevo cliente",
         "description": "",
         "parameters": [
           {
             "name": "body",
             "in": "body",
-            "description": "Datos del usuario",
+            "description": "Datos del nuevo usuario",
             "schema": {
-              "$ref": "#/definitions/NuevoUsuario"
+              "type": "object",
+              "properties": {
+                "nombre": {
+                  "type": "string",
+                  "example": "Juan Perez"
+                },
+                "correo": {
+                  "type": "string",
+                  "example": "juan@example.com"
+                },
+                "password": {
+                  "type": "string",
+                  "example": "secret"
+                },
+                "direccion": {
+                  "type": "string",
+                  "example": "Av. Siempre Viva 123"
+                }
+              },
+              "required": [
+                "nombre",
+                "correo",
+                "password"
+              ]
             }
           }
         ],
@@ -68,12 +115,92 @@
         }
       }
     },
-    "/productos": {
+    "/api/v1/usuarios": {
+      "post": {
+        "tags": [
+          "Usuarios"
+        ],
+        "summary": "Crear usuario (Admin manual)",
+        "description": "Permite crear usuarios con roles específicos",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "nombre": {
+                  "type": "string",
+                  "example": "Admin"
+                },
+                "correo": {
+                  "type": "string",
+                  "example": "admin@tienda.cl"
+                },
+                "password": {
+                  "type": "string",
+                  "example": "admin123"
+                },
+                "rol": {
+                  "type": "string",
+                  "example": "admin"
+                }
+              },
+              "required": [
+                "nombre",
+                "correo",
+                "password",
+                "rol"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Usuarios"
+        ],
+        "summary": "Listar todos los usuarios",
+        "description": "",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/productos": {
       "get": {
         "tags": [
           "Productos"
         ],
-        "summary": "Listar catálogo",
+        "summary": "Listar todos los productos",
         "description": "",
         "responses": {
           "200": {
@@ -85,15 +212,48 @@
         "tags": [
           "Productos"
         ],
-        "summary": "Crear producto",
+        "summary": "Crear un nuevo producto",
         "description": "",
         "parameters": [
           {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          },
+          {
             "name": "body",
             "in": "body",
-            "description": "Información del producto",
+            "required": true,
             "schema": {
-              "$ref": "#/definitions/NuevoProducto"
+              "type": "object",
+              "properties": {
+                "nombre": {
+                  "type": "string",
+                  "example": "Guitarra Gibson"
+                },
+                "precio": {
+                  "type": "number",
+                  "example": 990000
+                },
+                "categoria": {
+                  "type": "string",
+                  "example": "Cuerdas"
+                },
+                "stock": {
+                  "type": "number",
+                  "example": 10
+                },
+                "descripcion": {
+                  "type": "string",
+                  "example": "Guitarra eléctrica..."
+                }
+              },
+              "required": [
+                "nombre",
+                "precio",
+                "categoria",
+                "stock"
+              ]
             }
           }
         ],
@@ -103,24 +263,34 @@
           },
           "400": {
             "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
-    "/productos/{id}": {
+    "/api/v1/productos/{id}": {
       "get": {
         "tags": [
           "Productos"
         ],
-        "summary": "Obtener detalle de producto",
+        "summary": "Obtener producto por ID",
         "description": "",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "type": "string",
-            "description": "ID del producto"
+            "type": "string"
           }
         ],
         "responses": {
@@ -146,15 +316,29 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "type": "string",
-            "description": "ID del producto"
+            "type": "string"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
           },
           {
             "name": "body",
             "in": "body",
-            "description": "Información actualizada del producto",
+            "description": "Campos a actualizar",
             "schema": {
-              "$ref": "#/definitions/NuevoProducto"
+              "type": "object",
+              "properties": {
+                "precio": {
+                  "type": "number",
+                  "example": 850000
+                },
+                "stock": {
+                  "type": "number",
+                  "example": 5
+                }
+              }
             }
           }
         ],
@@ -162,10 +346,18 @@
           "200": {
             "description": "OK"
           },
-          "400": {
-            "description": "Bad Request"
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       },
       "delete": {
         "tags": [
@@ -178,168 +370,136 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "type": "string",
-            "description": "ID del producto"
+            "type": "string"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
           }
         ],
         "responses": {
           "204": {
             "description": "No Content"
           },
-          "500": {
-            "description": "Internal Server Error"
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
-    "/usuarios": {
-      "get": {
-        "tags": [
-          "Usuarios"
-        ],
-        "summary": "Listar usuarios (Admin)",
-        "description": "",
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "500": {
-            "description": "Internal Server Error"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "Usuarios"
-        ],
-        "summary": "Crear nuevo usuario (Admin)",
-        "description": "",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "description": "Datos del nuevo usuario",
-            "schema": {
-              "$ref": "#/definitions/NuevoUsuario"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Created"
-          },
-          "400": {
-            "description": "Bad Request"
-          }
-        }
-      }
-    },
-    "/usuarios/{id}": {
-      "get": {
-        "tags": [
-          "Usuarios"
-        ],
-        "summary": "Obtener usuario por ID",
-        "description": "",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "type": "string",
-            "description": "ID del usuario"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "404": {
-            "description": "Usuario no encontrado"
-          },
-          "500": {
-            "description": "Internal Server Error"
-          }
-        }
-      },
+    "/api/v1/usuarios/{id}": {
       "put": {
         "tags": [
           "Usuarios"
         ],
-        "summary": "Editar usuario (Admin)",
+        "summary": "Actualizar usuario",
         "description": "",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "type": "string",
-            "description": "ID del usuario"
+            "type": "string"
           },
           {
-            "name": "body",
-            "in": "body",
-            "description": "Datos actualizados del usuario",
-            "schema": {
-              "$ref": "#/definitions/NuevoUsuario"
-            }
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
           }
         ],
         "responses": {
           "200": {
             "description": "OK"
           },
-          "400": {
-            "description": "Bad Request"
+          "401": {
+            "description": "Unauthorized"
           },
-          "404": {
-            "description": "Not Found"
+          "403": {
+            "description": "Forbidden"
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       },
       "delete": {
         "tags": [
           "Usuarios"
         ],
-        "summary": "Eliminar usuario (Admin)",
+        "summary": "Eliminar usuario",
         "description": "",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "type": "string",
-            "description": "ID del usuario"
+            "type": "string"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
           }
         ],
         "responses": {
           "204": {
             "description": "No Content"
           },
-          "404": {
-            "description": "Not Found"
+          "401": {
+            "description": "Unauthorized"
           },
-          "500": {
-            "description": "Internal Server Error"
+          "403": {
+            "description": "Forbidden"
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
-    "/boletas": {
+    "/api/v1/boletas": {
       "get": {
         "tags": [
           "Boletas"
         ],
-        "summary": "Historial de ventas",
+        "summary": "Ver historial de ventas",
         "description": "",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK"
           },
-          "500": {
-            "description": "Internal Server Error"
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       },
       "post": {
         "tags": [
@@ -351,18 +511,59 @@
           {
             "name": "body",
             "in": "body",
-            "description": "Detalle de la boleta",
             "schema": {
-              "$ref": "#/definitions/NuevaBoleta"
+              "type": "object",
+              "properties": {
+                "usuario": {
+                  "type": "string",
+                  "example": "ID_DEL_USUARIO"
+                },
+                "productos": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "producto": {
+                        "type": "string",
+                        "example": "ID_PRODUCTO"
+                      },
+                      "cantidad": {
+                        "type": "number",
+                        "example": 1
+                      },
+                      "precio": {
+                        "type": "number",
+                        "example": 1000
+                      }
+                    }
+                  }
+                },
+                "total": {
+                  "type": "number",
+                  "example": 1000
+                }
+              },
+              "required": [
+                "usuario",
+                "productos",
+                "total"
+              ]
             }
           }
         ],
         "responses": {
           "201": {
             "description": "Created"
-          },
-          "400": {
-            "description": "Bad Request"
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }

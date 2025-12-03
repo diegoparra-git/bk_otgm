@@ -1,8 +1,10 @@
 const swaggerAutogen = require('swagger-autogen')();
 
 const outputFile = './swagger_output.json';
-// ERROR ORIGINAL: const endpointsFiles = ['./routes/*.js'];
-// CORRECCIÓN: Apunta a tu archivo principal donde están las rutas
+
+// ⚠️ IMPORTANTE: Aquí debes poner el nombre EXACTO de tu archivo principal.
+// Si tu archivo se llama "server.js", pon './server.js'.
+// Si se llama "index.js", pon './index.js'.
 const endpointsFiles = ['./index.js']; 
 
 const doc = {
@@ -13,7 +15,19 @@ const doc = {
   },
   host: 'localhost:3000',
   schemes: ['http'],
-  // Definimos las estructuras de datos para usarlas en la documentación
+  
+  // 🔐 Configuración para que funcione el candado (JWT) en Swagger
+  securityDefinitions: {
+      bearerAuth: {
+          type: 'apiKey',
+          name: 'Authorization',
+          scheme: 'bearer',
+          in: 'header',
+          description: "Ingresa tu token en el formato: Bearer <tu_token_aqui>"
+      },
+  },
+  
+  // Estructuras de datos (Schemas)
   definitions: {
     Login: {
       correo: "cliente@email.com",
@@ -51,4 +65,8 @@ const doc = {
   }
 };
 
-swaggerAutogen(outputFile, endpointsFiles, doc);
+// Generamos el archivo
+swaggerAutogen(outputFile, endpointsFiles, doc).then(() => {
+    console.log('✅ Documentación generada con éxito en: ' + outputFile);
+    console.log('👉 Ahora asegúrate de que tu archivo principal ("server.js" o "index.js") apunte a este JSON.');
+});
