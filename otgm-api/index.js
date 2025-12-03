@@ -2,7 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const swaggerUi = require('swagger-ui-express');
-const swaggerDocument = require('./swagger_output.json'); // Or wherever your swagger.json is located
+const swaggerDocument = require('./swagger_output.json');
+const jwt = require('jsonwebtoken');
 
 // Importar Modelos
 const Producto = require('./models/Producto');
@@ -11,263 +12,167 @@ const Boleta = require('./models/Boleta');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const SECRET_KEY = 'mi_super_secreto_chileno'; 
 
 app.use(express.json());
 app.use(cors());
 
-// Conexión a MongoDB (Localhost)
+// ==========================================
+// 🛡️ MIDDLEWARES
+// ==========================================
+const verifyToken = (req, res, next) => {
+  const bearerHeader = req.headers['authorization'];
+  if (typeof bearerHeader !== 'undefined') {
+    const bearer = bearerHeader.split(' ');
+    const token = bearer[1];
+    jwt.verify(token, SECRET_KEY, (err, decoded) => {
+      if (err) return res.status(403).json({ message: 'Token inválido' });
+      req.user = decoded.user;
+      next();
+    });
+  } else {
+    res.status(401).json({ message: 'Falta Token' });
+  }
+};
+
+const authorize = (rolesPermitidos = []) => {
+  return (req, res, next) => {
+    if (!req.user) return res.status(401).json({ message: 'No autenticado' });
+    if (!rolesPermitidos.includes(req.user.rol)) {
+      return res.status(403).json({ message: 'Rol no autorizado' });
+    }
+    next();
+  };
+};
+
+// Conexión MongoDB
 const MONGO_URI = 'mongodb://127.0.0.1:27017/onthegomusic';
 mongoose.connect(MONGO_URI)
   .then(() => console.log('✅ Conectado a MongoDB'))
   .catch(err => console.error('❌ Error MongoDB:', err));
 
-
-app.get('/', (req, res) => {
-  res.send(`
-    <h1>Bienvenido a la API de On The Go Music</h1>
-    <p>El servidor está funcionando correctamente.</p>
-    <p>Visita <a href="/api-docs">/api-docs</a> para ver la documentación.</p>
-  `);
-});
-
 // ==========================================
-// RUTAS DE AUTENTICACIÓN
+// RUTAS DE AUTENTICACIÓN (DEBUG MEJORADO)
 // ==========================================
+
 app.post('/login', async (req, res) => {
-  // #swagger.tags = ['Autenticación']
-  // #swagger.summary = 'Iniciar sesión'
-  // #swagger.description = 'Retorna el usuario sin la contraseña.'
-  /* #swagger.parameters['body'] = {
-        in: 'body',
-        description: 'Credenciales',
-        schema: { $ref: '#/definitions/Login' }
-  } */
   const { correo, password } = req.body;
+  
+  // 🔍 LOG PARA DEBUG: Mira esto en tu terminal de Node
+  console.log(`📡 Intento de Login -> Correo: "${correo}", Pass: "${password}"`);
+
   try {
-    const user = await Usuario.findOne({ correo, password });
-    if (user) {
-      const { password, ...userWithoutPass } = user.toObject();
-      res.json(userWithoutPass);
-    } else {
-      res.status(401).json({ message: 'Credenciales inválidas' });
+    // 1. Buscamos el usuario (ignorando mayúsculas/minúsculas en el correo)
+    const user = await Usuario.findOne({ 
+        correo: { $regex: new RegExp(`^${correo}$`, 'i') } 
+    });
+
+    if (!user) {
+        console.log('❌ Usuario no encontrado en la BD');
+        return res.status(401).json({ message: 'Usuario no existe' });
     }
+
+    // 2. Verificamos contraseña (comparación simple de texto plano por ahora)
+    if (user.password !== password) {
+        console.log(`❌ Contraseña incorrecta. BD: "${user.password}" vs Recibido: "${password}"`);
+        return res.status(401).json({ message: 'Contraseña incorrecta' });
+    }
+
+    // 3. Login Exitoso
+    console.log(`✅ Login exitoso para: ${user.nombre} (${user.rol})`);
+    const { password: _, ...userWithoutPass } = user.toObject();
+    const token = jwt.sign({ user: userWithoutPass }, SECRET_KEY, { expiresIn: '4h' });
+    
+    res.json({ user: userWithoutPass, token });
+
   } catch (error) {
+    console.error('🔥 Error en servidor:', error);
     res.status(500).json({ message: 'Error servidor' });
   }
 });
 
+// REGISTRO DE USUARIOS (Público)
 app.post('/register', async (req, res) => {
-  // #swagger.tags = ['Autenticación']
-  // #swagger.summary = 'Registrar nuevo usuario'
-  /* #swagger.parameters['body'] = {
-        in: 'body',
-        description: 'Datos del usuario',
-        schema: { $ref: '#/definitions/NuevoUsuario' }
-  } */
   try {
+    // Forzamos rol cliente
     const nuevoUsuario = new Usuario({ ...req.body, rol: 'cliente' });
     await nuevoUsuario.save();
+    console.log('✅ Usuario registrado:', nuevoUsuario.correo);
     res.status(201).json(nuevoUsuario);
   } catch (error) {
+    console.error('Error registro:', error);
     res.status(400).json({ message: 'Error registro', error });
   }
 });
 
+// CREAR USUARIO (Ruta usada por tu ViewModel addUser)
+app.post('/usuarios', async (req, res) => {
+    try {
+      const usuario = new Usuario(req.body);
+      await usuario.save();
+      console.log('✅ Usuario creado vía /usuarios:', usuario.correo);
+      res.status(201).json(usuario);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+});
+
 // ==========================================
-// RUTAS DE PRODUCTOS
+// RESTO DE RUTAS (Productos, Usuarios, Boletas)
 // ==========================================
+
+// PRODUCTOS
 app.get('/productos', async (req, res) => {
-  // #swagger.tags = ['Productos']
-  // #swagger.summary = 'Listar catálogo'
   const productos = await Producto.find();
   res.json(productos);
 });
-
 app.get('/productos/:id', async (req, res) => {
-  // #swagger.tags = ['Productos']
-  // #swagger.summary = 'Obtener detalle de producto'
-  // #swagger.parameters['id'] = { description: 'ID del producto' }
-  try {
-    const producto = await Producto.findById(req.params.id);
-    producto ? res.json(producto) : res.status(404).json({ message: 'No encontrado' });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
+    try {
+        const p = await Producto.findById(req.params.id);
+        p ? res.json(p) : res.status(404).json({message: 'No encontrado'});
+    } catch(e) { res.status(500).json({message: e.message}); }
 });
-
-app.post('/productos', async (req, res) => {
-  // #swagger.tags = ['Productos']
-  // #swagger.summary = 'Crear producto'
-  /* #swagger.parameters['body'] = {
-        in: 'body',
-        description: 'Información del producto',
-        schema: { $ref: '#/definitions/NuevoProducto' }
-  } */
-  try {
-    const producto = new Producto(req.body);
-    await producto.save();
-    res.status(201).json(producto);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
+app.post('/productos', verifyToken, authorize(['admin', 'vendedor']), async (req, res) => {
+    try {
+        const p = new Producto(req.body);
+        await p.save();
+        res.status(201).json(p);
+    } catch(e) { res.status(400).json({message: e.message}); }
 });
-
-app.put('/productos/:id', async (req, res) => {
-  // #swagger.tags = ['Productos']
-  // #swagger.summary = 'Actualizar producto'
-  // #swagger.parameters['id'] = { description: 'ID del producto' }
-  /* #swagger.parameters['body'] = {
-        in: 'body',
-        description: 'Información actualizada del producto',
-        schema: { $ref: '#/definitions/NuevoProducto' }
-  } */
-  try {
-    const producto = await Producto.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    res.json(producto);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
+app.put('/productos/:id', verifyToken, authorize(['admin', 'vendedor']), async (req, res) => {
+    await Producto.findByIdAndUpdate(req.params.id, req.body);
+    res.json({message: "Actualizado"});
 });
-
-app.delete('/productos/:id', async (req, res) => {
-  // #swagger.tags = ['Productos']
-  // #swagger.summary = 'Eliminar producto'
-  // #swagger.parameters['id'] = { description: 'ID del producto' }
-  try {
+app.delete('/productos/:id', verifyToken, authorize(['admin', 'vendedor']), async (req, res) => {
     await Producto.findByIdAndDelete(req.params.id);
     res.status(204).send();
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
 });
 
-// ==========================================
-// RUTAS DE USUARIOS
-// ==========================================
-app.get('/usuarios', async (req, res) => {
-  // #swagger.tags = ['Usuarios']
-  // #swagger.summary = 'Listar usuarios (Admin)'
-  try {
-    const usuarios = await Usuario.find();
-    res.json(usuarios);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
+// USUARIOS (Admin)
+app.get('/usuarios', verifyToken, authorize(['admin']), async (req, res) => {
+  const usuarios = await Usuario.find();
+  res.json(usuarios);
+});
+app.put('/usuarios/:id', verifyToken, authorize(['admin']), async (req, res) => {
+    const u = await Usuario.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.json(u);
+});
+app.delete('/usuarios/:id', verifyToken, authorize(['admin']), async (req, res) => {
+    await Usuario.findByIdAndDelete(req.params.id);
+    res.status(204).send();
 });
 
-app.get('/usuarios/:id', async (req, res) => {
-  // #swagger.tags = ['Usuarios']
-  // #swagger.summary = 'Obtener usuario por ID'
-  // #swagger.parameters['id'] = { description: 'ID del usuario' }
-  try {
-    const usuario = await Usuario.findById(req.params.id);
-    if (!usuario) {
-      return res.status(404).json({ message: 'Usuario no encontrado' });
-    }
-    const { password, ...usuarioSinPass } = usuario.toObject();
-    res.json(usuarioSinPass);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
+// BOLETAS
+app.get('/boletas', verifyToken, authorize(['admin', 'vendedor']), async (req, res) => {
+  const boletas = await Boleta.find().populate('usuario');
+  res.json(boletas);
 });
-
-app.post('/usuarios', async (req, res) => {
-  // #swagger.tags = ['Usuarios']
-  // #swagger.summary = 'Crear nuevo usuario (Admin)'
-  /* #swagger.parameters['body'] = {
-        in: 'body',
-        description: 'Datos del nuevo usuario',
-        schema: { $ref: '#/definitions/NuevoUsuario' }
-  } */
-  try {
-    const usuario = new Usuario(req.body);
-    await usuario.save();
-    res.status(201).json(usuario);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
-
-// PUT: Editar Usuario
-app.put('/usuarios/:id', async (req, res) => {
-  // #swagger.tags = ['Usuarios']
-  // #swagger.summary = 'Editar usuario (Admin)'
-  // #swagger.parameters['id'] = { description: 'ID del usuario' }
-  /* #swagger.parameters['body'] = {
-        in: 'body',
-        description: 'Datos actualizados del usuario',
-        schema: { $ref: '#/definitions/NuevoUsuario' }
-  } */
-  try {
-    const usuario = await Usuario.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    
-    if (!usuario) {
-        return res.status(404).json({ message: 'Usuario no encontrado' });
-    }
-    
-    res.json(usuario);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
-
-// DELETE: Eliminar Usuario
-app.delete('/usuarios/:id', async (req, res) => {
-  // #swagger.tags = ['Usuarios']
-  // #swagger.summary = 'Eliminar usuario (Admin)'
-  // #swagger.parameters['id'] = { description: 'ID del usuario' }
-  try {
-    const usuario = await Usuario.findByIdAndDelete(req.params.id);
-    
-    if (!usuario) {
-        return res.status(404).json({ message: 'Usuario no encontrado' });
-    }
-    
-    res.status(204).send(); // 204 No Content (Éxito)
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-// ==========================================
-// RUTAS DE BOLETAS
-// ==========================================
-app.get('/boletas', async (req, res) => {
-  // #swagger.tags = ['Boletas']
-  // #swagger.summary = 'Historial de ventas'
-  try {
-    const boletas = await Boleta.find().populate('usuario'); 
-    res.json(boletas);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
 app.post('/boletas', async (req, res) => {
-  // #swagger.tags = ['Boletas']
-  // #swagger.summary = 'Generar nueva venta'
-  /* #swagger.parameters['body'] = {
-        in: 'body',
-        description: 'Detalle de la boleta',
-        schema: { $ref: '#/definitions/NuevaBoleta' }
-  } */
-  try {
-    const boleta = new Boleta(req.body);
-    await boleta.save();
-    res.status(201).json(boleta);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
+    const b = new Boleta(req.body);
+    await b.save();
+    res.status(201).json(b);
 });
 
 app.listen(PORT, () => {
   console.log(`🚀 API corriendo en puerto ${PORT}`);
-});
-
-
-// TODO: {pipe} Mostrar rutas api en swagger
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-app.listen(PORT, () => {
-
-  console.log(`Swagger UI available at http://localhost:${PORT}/api-docs`);
 });
