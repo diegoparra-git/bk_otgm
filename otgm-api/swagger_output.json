@@ -38,11 +38,11 @@
               "properties": {
                 "correo": {
                   "type": "string",
-                  "example": "admin@duoc.cl"
+                  "example": "admin@mail.com"
                 },
                 "password": {
                   "type": "string",
-                  "example": "123456"
+                  "example": "123"
                 }
               },
               "required": [
